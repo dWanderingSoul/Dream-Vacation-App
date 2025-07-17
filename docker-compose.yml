@@ -1,0 +1,44 @@
+services:
+  backend:
+    container_name: backend
+    build: ./backend
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - db
+    networks:
+      - dream_network
+
+  frontend:
+    container_name: frontend
+    build: ./frontend
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "3000:80"  
+    depends_on:
+      - backend
+    networks:
+      - dream_network
+
+  db:
+    container_name: postgres
+    image: postgres:14
+    restart: always
+    environment:
+     - POSTGRES_USER=${POSTGRES_USER}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - dream_network
+
+volumes:
+  pgdata:
+
+networks:
+  dream_network:
+    driver: bridge
