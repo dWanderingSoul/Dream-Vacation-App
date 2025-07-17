@@ -32,7 +32,7 @@ Dream-Vacation-App/
 - **Add Countries**: Users can add countries to their dream vacation list.
 - **View Country Details**: Displays capital, population, and region information for each country.
 - **Remove Countries**: Users can remove countries from their list.
-- **- Full-stack development**: React (frontend), Node.js/Express (backend), and PostgreSQL (database)
+- **Full-stack development**: React (frontend), Node.js/Express (backend), and PostgreSQL (database)
 - **Environment variable management**: Using `.env` files
 - **Production-Ready Setup**: The project is designed to be scalable and maintainable, following industry-standard practices for deployment and CI/CD.
 - **Dockerized Deployment and orchestration**: Uses Docker and Docker Compose for reproducible builds.
