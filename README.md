@@ -155,4 +155,3 @@ CI/CD configuration is stored in:
 - **Automated builds and deploys with CI/CD**
 - **Security**: Sensitive information is managed using environment variables Secrets.
 - **Documentation**: The project is well-documented to facilitate onboarding and maintenance.
-- 
