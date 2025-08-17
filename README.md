@@ -62,178 +62,171 @@ Before I could launch my EC2 instance, I needed to ensure the network setup was 
 2. Created Subnet
  - Name: `dream-subnet`
  - CIDR Block: `10.0.1.0/24`
- - Associated with dream-vpc.
+ - Associated with `dream-vpc`.
    
 3. Created Internet Gateway
  - Name: `dream-igw`
- - Attached to dream-vpc.
+ - Attached to `dream-vpc` to allow external traffic.
    
 4. Created Route Table
  - Name: dream-rt.
- - Associated with dream-subnet.
- - Added route to 0.0.0.0/0 via dream-igw for internet access.
- screenshot 
+ - Associated with `dream-subnet`.
+ - Added route to `0.0.0.0/0` via `dream-igw` for internet access.
+   
+📸 Screenshots included for VPC and Subnet in AWS console
+
+![VPC and Subnet](screenshots/vpc1.png)
+![VPC and Subnet](screenshots/vcp2.png)
+![VPC and Subnet](screenshots/subnet1.png)
+![VPC and Subnet](screenshots/subnet2.png)
+![VPC and Subnet](screenshots/subnet3.png)
+
+> By completing this networking setup, I ensured that my EC2 instance would have proper connectivity to the internet and that I could access it externally.
 
 
 ### ⚡ Part 2 – EC2 Instance Setup
 
-Launched EC2 Instance
+Next, I launched an EC2 instance to host the Dream Vacation App.
+#### Instance details
+ - AMI: Ubuntu 20.04
+ - Instance Type: `t2.micro`
+ - Key Pair: `dream-key.pem` configured for SSH access.
+ - Security Group: Allowed ports 22 (SSH), 80 (HTTP), 3000 (Frontend), 5000 (Backend).
 
-AMI: Ubuntu 20.04
+Configuration Steps:
+1. Launch the EC2 instance in the `dream-subnet` I created.
+2. Connect via SSH from PowerShell on my local machine:
+```bash
+ssh -i C:\Users\User\.ssh\dream-key.pem ubuntu@<EC2_PUBLIC_IP>
+```
 
-Type: t2.micro
-
-Key Pair: Configured for SSH access.
-
-Security Group: Allowed ports 22 (SSH), 80 (HTTP), 3000 (Frontend), 5000 (Backend).
-
-Installed Docker & Docker Compose
+#### Installed Docker & Docker Compose
 I used a User Data script during launch:
-
+ ``` bash
 #!/bin/bash
 sudo apt-get update -y
 sudo apt-get install -y docker.io docker-compose
 sudo systemctl start docker
 sudo systemctl enable docker
+```
 
+#### Verified installation
 
-Verified installation
-
+```bash
 docker --version
 docker-compose --version
-
+```
 
 📸 Screenshot of running EC2 attached
-1. Navigate to the `frontend` directory.
-2. Run `npm install` to install dependencies.
-3. Update the `.env` file with your API URL (e.g., `REACT_APP_API_URL=http://localhost:3001`).
-4. Run `npm start` to start the React development server.
 
-## Features
-- **Add Countries**: Users can add countries to their dream vacation list.
-- **View Country Details**: Displays capital, population, and region information for each country.
-- **Remove Countries**: Users can remove countries from their list.
-- **Full-stack development**: React (frontend), Node.js/Express (backend), and PostgreSQL (database)
-- **Environment variable management**: Using `.env` files
-- **Production-Ready Setup**: The project is designed to be scalable and maintainable, following industry-standard practices for deployment and CI/CD.
-- **Dockerized Deployment and orchestration**: Uses Docker and Docker Compose for reproducible builds.
+![EC2](screenshots/EC2instance1.png)
+![EC2](screenshots/EC2instance2.png)
+![EC2](screenshots/EC2instance3.png)
+![EC2](screenshots/EC2instance4.png)
+![EC2](screenshots/EC2instance5.png)
 
-##  Local Development
+> Installing Docker ensures I can run the app containers on my EC2 instance. Docker Compose helps me orchestrate both frontend and backend services.
 
-### Backend (Node.js)
 
-1. Navigate to the backend folder:
-```bash
-cd backend
+### ⚡ Part 3 – CI/CD Deployment
+
+With the infrastructure ready, I moved on to deploying the Dream Vacation App using my existing CI/CD pipeline.
+
+#### 🔄 Existing Pipeline
+Before this stage, I had already set up a CI/CD pipeline that:
+ - Builds Docker images for both frontend and backend.
+ - Pushes these images to my container registry (Docker Hub).
+I confirmed that the pipeline was green and the latest images were successfully built and pushed.
+
+#### 🛠️ Updated Pipeline for Deployment
+To automate deployment onto my EC2 instance, I updated my GitHub Actions workflow (`.github/workflows/backend.yml`, `.github/workflows/frontend.yml`) with a final deploy stage by adding (`.github/workflows/deploy.yml`).
+This stage:
+1. SSHs into the EC2 instance.
+2. Copies the docker-compose.yml file and app code.
+3. Pulls the latest Docker images.
+4. Runs containers with Docker Compose.
+   
+``` bash
+deploy:
+  runs-on: ubuntu-latest
+  steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v0.1.6
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd ~/dream-vacation-app
+          git pull origin main
+          docker-compose pull
+          docker-compose up -d --build
 ```
-2. Install dependencies:
- ```bash
- npm install
- ```
-3. Create a `.env` file:
-```bash
-PORT=3001
-DATABASE_URL=postgres://your_user:your_password@localhost:5432/your_db
-```
-4. Start the backend:
-```bash
-npm start
+Alternatively, I could also manually run the deployment with:
+
+``` bash
+ssh -i C:\Users\User\.ssh\dream-key.pem ubuntu@<EC2_PUBLIC_IP> << 'EOF'
+cd /home/ubuntu/Dream-Vacation-App
+docker-compose pull
+docker-compose up -d
+EOF
 ```
 
-### Frontend (React)
+📸 Screenshots of CI/CD pipeline logs, Docker images on registry and SSH into EC2 instance via PowerShell attached.
 
-1. Navigate to the frontend folder:
+![CI/CD pipeline logs](screenshots/CICDdeployment1.png)
+![CI/CD pipeline logs](screenshots/CICDdeployment2.png)
+![CI/CD pipeline logs](screenshots/Dockerimagesonregistry.png)
+![CI/CD pipeline logs](screenshots/sshintoec2instanceviapowershell.png)
+
+> This automation ensures that every time I push changes to GitHub, the EC2 instance automatically updates the app without manual intervention.
+
+
+### ✅ Part 4 – Testing Deployment
+
+After the pipeline ran successfully, I verified that both the frontend and backend of the Dream Vacation App were properly deployed and running on the EC2 instance.
+
+#### 🌐 Application Endpoints
+ - Frontend: http://<EC2_PUBLIC_IP>:3000
+ - Backend API: http://<EC2_PUBLIC_IP>:5000
+For my deployment:
+ - Frontend → http://51.21.135.248:3000
+ - Backend → http://51.21.135.248:5000
+
+#### 📝 Things I Checked
+ - ✅ Docker containers are running properly using:
 ```bash
-cd frontend
+docker ps
 ```
-2. Install dependencies:
-```bash
-npm install
-```
-3. Create a `.env` file:
-```bash
-REACT_APP_API_URL=http://localhost:3001
-```
-4. Start the frontend:
-```bash
-npm start
-```
-## Dockerized Setup
-### Prerequisites
-- Docker & Docker Compose installed
+ - ✅ Ports 3000 (frontend) and 5000 (backend) are open in the EC2 security group.
+ - ✅ Frontend renders correctly in the browser.
+ - ✅ Backend API responds successfully using Postman or browser requests.
 
-### 1. Docker Build
-Each service has its own Dockerfile:
-- Frontend uses multi-stage builds and serves via Nginx
-- Backend installs dependencies and exposes an API
-- PostgreSQL uses official image
+📸 Screenshot of the running app in the browser attached.
 
-### 2. Environment Variables
-Create a `.env` file at the root of the project:
-```bash
-POSTGRES_USER=your_user
-POSTGRES_PASSWORD=your_password
-POSTGRES_DB=dream_vacation
-DATABASE_URL=postgres://your_user:your_password@db:5432/dream_vacation
-REACT_APP_API_URL=http://localhost:3001
-```
-### 3. Run All Services
-From the project root:
-```bash
-docker-compose up --build
-```
-This will:
-- Start PostgreSQL with volume persistence
-- Start backend with environment variables
-- Start frontend served via Nginx
+![appinbrowser](screenshots/Appinbrowser.png)
 
-### 4. Access the App
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:3001
 
-## CI/CD Pipeline (GitHub Actions)
-The project includes a GitHub Actions workflow to automate the build, test, and deployment process using Docker.
+### 🚀 Conclusion
 
-### Triggering
-Pipelines are triggered on every push or pull request to `main` or `dev` branches.
+By following this process, I successfully deployed the Dream Vacation App on AWS EC2, using ClickOps for infrastructure setup and my CI/CD pipeline for automated deployment. Both the frontend and backend are now publicly accessible and running smoothly.
 
-### Workflow Files
-CI/CD configuration is stored in:
-```bash
-.github/workflows/
-├── backend.yml   # Workflow for building and pushing backend Docker image
-└── frontend.yml  # Workflow for building and pushing frontend Docker image
-```
-### Jobs Included
-- (Optional) Lint Checks
-- Build frontend and backend Docker images
-- Push images to Docker Hub or GitHub Container Registry
-- Tag images with Git commit SHA
-- Use secrets (`DOCKER_USERNAME`, `DOCKER_TOKEN`) securely from GitHub Secrets
+#### 🌟 Key Learnings
+This project gave me valuable hands-on experience in:
 
-## Roadmap
-- **CI/CD Implementation**: Automate the build, test, and deployment process using industry-standard CI/CD tools.
-- **Infrastructure as Code (IaC)**: Implement IaC for automated environment setup and management.
-- **Scalability**: Enhance the application to support multiple environments (staging, production) with proper domain names and configurations.
-- **Security**: Utilize Kubernetes Secrets and environment variables for secure data management.
-- **Microservices**: Modularize the application into microservices to improve maintainability and scalability.
-- **Containerization**: frontend & backend
-- **Service**: PostgreSQL with Docker volume
+ - Building AWS networking from scratch (VPCs, subnets, internet gateways, route tables).
 
-## Technologies Used
-- **Frontend**: React + Nginx
-- **Backend**: Node.js + Express + PostgreSQL
-- **Database**: PostgreSQL (Dockerized)
-- **External API**: REST Countries API
-- **CI/CD**: Implemented with [CI/CD tools, i.e GitHub Actions]
-- **Infrastructure as Code**: To be implemented with tools like Terraform or Helm
-- **Containerization**: Docker, Docker Compose
-- **Secrets Management**: GitHub Secrets
+ - Launching and configuring EC2 instances for containerized applications.
 
-## Best Practices
-- **Version Control**: All changes are tracked in Git for collaboration and history management & GitHub.
-- **Environment Management**: Separate configurations for different environments (development, staging, production) using environment variables.
-- **Automated builds and deploys with CI/CD**
-- **Security**: Sensitive information is managed using environment variables Secrets.
-- **Documentation**: The project is well-documented to facilitate onboarding and maintenance.
+ - Deploying a full-stack app with Docker & Docker Compose.
+
+ - Extending a CI/CD pipeline to automate remote deployments into AWS.
+
+ - Troubleshooting security group configurations and port-binding issues.
+
+Overall, this was a highly practical DevOps and cloud deployment exercise that strengthened my understanding of end-to-end infrastructure, deployment automation, and application delivery on AWS.
+
 
