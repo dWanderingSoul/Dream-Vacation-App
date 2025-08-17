@@ -39,14 +39,14 @@ jobs:
             FRONTEND_SHA=$(curl -s "https://hub.docker.com/v2/repositories/dwanderingsoul/dream-frontend/tags?page_size=1&page=1&ordering=last_updated" | jq -r '.results[0].name')
             BACKEND_SHA=$(curl -s "https://hub.docker.com/v2/repositories/dwanderingsoul/dream-backend/tags?page_size=1&page=1&ordering=last_updated" | jq -r '.results[0].name')
 
-            cat <<EOF > /home/ubuntu/dream-vacation/backend/.env
-              FRONTEND_TAG=${FRONTEND_SHA}
-              BACKEND_TAG=${BACKEND_SHA}
-              DB_PORT=${{ secrets.DB_PORT }}
-              POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-              POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-              POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            EOF
+        
+            # Export all secrets as environment variables
+            export FRONTEND_TAG=$FRONTEND_SHA
+            export BACKEND_TAG=$BACKEND_SHA
+            export DB_PORT=${{ secrets.DB_PORT }}
+            export POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            export POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
 
     
             docker-compose pull
