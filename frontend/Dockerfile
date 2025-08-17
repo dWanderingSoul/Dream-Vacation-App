@@ -1,8 +1,12 @@
 # Build stage
-FROM node:16-alpine AS builder
+FROM node:18-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
+
+# Install dependencies and force compatible ESLint
 RUN npm install
+RUN npm install --save-dev --force eslint@7.32.0 @typescript-eslint/eslint-plugin@4.33.0 @typescript-eslint/parser@4.33.0
+
 COPY . .
 ENV NODE_OPTIONS=--openssl-legacy-provider
 ENV SKIP_PREFLIGHT_CHECK=true
