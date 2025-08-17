@@ -6,6 +6,7 @@ RUN npm install
 COPY . .
 ENV NODE_OPTIONS=--openssl-legacy-provider
 ENV SKIP_PREFLIGHT_CHECK=true
+ENV DISABLE_ESLINT_PLUGIN=true
 RUN npm run build
 
 # Production stage
