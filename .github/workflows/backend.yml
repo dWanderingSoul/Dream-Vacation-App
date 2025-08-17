@@ -39,7 +39,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}   # Username stored in repository variables
-          password: ${{ secrets.DOCKER_TOKEN }}   # Token stored securely in secrets
+          password: ${{ secrets.DOCKER_PASSWORD }}   # Token stored securely in secrets
 
       # Step 4: Set up Docker Buildx (a builder for advanced features like multi-platform builds)
       - name: Set up Docker Buildx
