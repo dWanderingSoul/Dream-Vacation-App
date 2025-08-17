@@ -1,28 +1,109 @@
-# Dream Vacation Destinations
+# 🌍 Dream Vacation App – AWS EC2 Deployment with CI/CD
 
-This application allows users to create a list of countries they'd like to visit, providing basic information about each country. The project is structured to mimic a real-life production environment, employing best practices in software development, deployment, and continuous integration/continuous delivery (CI/CD). The application structure and deployment pipeline are designed for maintainability, scalability and ease of team collaboration in real-world DevOps environments.
+## Overview
 
+I’m sharing my process for deploying the Dream Vacation App to AWS EC2 using the AWS Management Console (ClickOps) and my existing CI/CD pipeline. This project is part of my DevOps beginner journey and I’ll walk through everything step by step—from setting up networking to launching the app and verifying it in the browser.
 
-##  Project Structure
+## Objectives
+
+This is my Dream Vacation App, a full-stack project that I deployed on AWS EC2 using ClickOps and my existing CI/CD pipeline.
+The goal of this task was to gain hands-on experience with:
+
+ - AWS Networking (VPC, Subnet, IGW, Route Tables).
+
+ - EC2 instance setup.
+
+ - Docker & Docker Compose for containerized deployment.
+
+ - CI/CD pipelines with GitHub Actions to automate deployment.
+
+By the end of this project, I successfully provisioned AWS resources, deployed both the frontend and backend containers and accessed my application using the EC2 public IP as well as externally.
+
+##  🏗️ Project Structure
+Here’s how my project is organized
 ```bash
 
 Dream-Vacation-App/
-├── backend/ # Node.js + Express API
-├── frontend/ # React UI
+├── backend/ 
+│   ├── Other files
+│   └── Dockerfile 
+├── frontend/ 
+│   ├── Other files
+│   └── Dockerfile
+├── .github/workflows
+│   ├── backend.yml
+│   ├── frontend.yml
+│   └── deploy.yml
 ├── docker-compose.yml
 ├── README.md
-└── .env (do not push to github, add to .gitignore)
+├── screenshots
+└── Other files
 ```
+
+## Process
+
+The processes involved in this stage were:
+ - Create AWS networking manually via the AWS Console (ClickOps).
+ - Launch an EC2 instance, install Docker + Docker Compose.
+ - Configure CI/CD to automatically deploy to EC2
+ - Run the Dream Vacation App (frontend + backend) successfully in a browser.
 
 ## Setup
 
-### Backend
-1. Navigate to the `backend` directory.
-2. Run `npm install` to install dependencies.
-3. Set up your PostgreSQL database and update the `.env` file with your database URL.
-4. Run `npm start` to start the server.
+### ⚡ Part 1 – Networking Setup
 
-### Frontend
+Before I could launch my EC2 instance, I needed to ensure the network setup was correct. Using the AWS Management Console, I created a custom Virtual Private Cloud (VPC) to isolate my application’s resources.
+
+### Steps I Followed:
+1. Created custom VPC
+ - Name: `dream-vpc`
+ - CIDR Block: `10.0.0.0/16`
+   
+2. Created Subnet
+ - Name: `dream-subnet`
+ - CIDR Block: `10.0.1.0/24`
+ - Associated with dream-vpc.
+   
+3. Created Internet Gateway
+ - Name: `dream-igw`
+ - Attached to dream-vpc.
+   
+4. Created Route Table
+ - Name: dream-rt.
+ - Associated with dream-subnet.
+ - Added route to 0.0.0.0/0 via dream-igw for internet access.
+ screenshot 
+
+
+### ⚡ Part 2 – EC2 Instance Setup
+
+Launched EC2 Instance
+
+AMI: Ubuntu 20.04
+
+Type: t2.micro
+
+Key Pair: Configured for SSH access.
+
+Security Group: Allowed ports 22 (SSH), 80 (HTTP), 3000 (Frontend), 5000 (Backend).
+
+Installed Docker & Docker Compose
+I used a User Data script during launch:
+
+#!/bin/bash
+sudo apt-get update -y
+sudo apt-get install -y docker.io docker-compose
+sudo systemctl start docker
+sudo systemctl enable docker
+
+
+Verified installation
+
+docker --version
+docker-compose --version
+
+
+📸 Screenshot of running EC2 attached
 1. Navigate to the `frontend` directory.
 2. Run `npm install` to install dependencies.
 3. Update the `.env` file with your API URL (e.g., `REACT_APP_API_URL=http://localhost:3001`).
@@ -155,3 +236,4 @@ CI/CD configuration is stored in:
 - **Automated builds and deploys with CI/CD**
 - **Security**: Sensitive information is managed using environment variables Secrets.
 - **Documentation**: The project is well-documented to facilitate onboarding and maintenance.
+
