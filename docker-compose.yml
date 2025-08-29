@@ -1,46 +1,175 @@
-version: '3.9'
-
-services:
-  frontend:
-    image: dwanderingsoul/dream-frontend:${FRONTEND_TAG}
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    networks:
-      - vacation-net
-
-  backend:
-    image: dwanderingsoul/dream-backend:${BACKEND_TAG}
-    ports:
-      - "5000:5000"
-    environment:
-      DB_HOST: db
-      DB_PORT: ${DB_PORT}
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    depends_on:
-      - db
-    networks:
-      - vacation-net
-
-  db:
-    image: postgres:14
-    restart: always
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_PORT: ${DB_PORT}
-    networks:
-      - vacation-net
-
-volumes:
-  pgdata:
-
-networks:
-  vacation-net:
-    driver: bridge
+name: Deploy Dream Vacation App
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - terraform-deploy
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_wrapper: false  # Important: disable wrapper for raw output
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-north-1
+      - name: Terraform Init
+        run: terraform init
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+      - name: Get EC2 Public IP
+        id: ec2
+        run: |
+          EC2_IP=$(terraform output -raw ec2_public_ip)
+          echo "EC2_IP=$EC2_IP"
+          echo "ec2_ip=$EC2_IP" >> $GITHUB_OUTPUT
+    outputs:
+      ec2_ip: ${{ steps.ec2.outputs.ec2_ip }} 
+  deploy:
+    needs: terraform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Install netcat
+      - name: Install netcat
+        run: sudo apt-get update && sudo apt-get install -y netcat-openbsd
+      
+      # Wait until SSH is available
+      - name: Wait for EC2 SSH
+        env:
+          EC2_IP: ${{ needs.terraform.outputs.ec2_ip }}
+        run: |
+          echo "⏳ Waiting for SSH on $EC2_IP:22..."
+          # Validate IP is not empty
+          if [ -z "$EC2_IP" ]; then
+            echo "❌ EC2_IP is empty or not set"
+            exit 1
+          fi
+          
+          for i in {1..30}; do
+            if nc -zv $EC2_IP 22 2>/dev/null; then
+              echo "✅ SSH is ready!"
+              exit 0
+            fi
+            echo "Retrying in 10s... ($i/30)"
+            sleep 10
+          done
+          echo "❌ Timeout: SSH not available after 5 minutes"
+          exit 1
+     
+      - name: Sync files to EC2 with rsync
+        uses: burnett01/rsync-deployments@5.0
+        with:
+          switches: -avz --delete
+          path: ./
+          remote_path: /home/ubuntu/dream-vacation
+          remote_host: ${{ needs.terraform.outputs.ec2_ip }}  # Use terraform output
+          remote_user: ubuntu
+          remote_key: ${{ secrets.EC2_SSH_KEY }}
+          
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ needs.terraform.outputs.ec2_ip }}  # Use terraform output
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Update packages and install jq
+            sudo apt update && sudo apt install -y jq curl
+            
+            # Install Docker Compose V2 (modern version)
+            DOCKER_COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)
+            sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+            
+            # Verify installation
+            docker-compose --version
+            
+            # Navigate to app directory
+            cd /home/ubuntu/dream-vacation
+            
+            # Get latest Docker image tags - check which repository actually exists
+            # Use dwanderingsoul repository as specified in docker-compose.yml
+            FRONTEND_SHA=$(curl -s "https://hub.docker.com/v2/repositories/dwanderingsoul/dream-frontend/tags?page_size=1&page=1&ordering=last_updated" | jq -r '.results[0].name // "latest"')
+            BACKEND_SHA=$(curl -s "https://hub.docker.com/v2/repositories/dwanderingsoul/dream-backend/tags?page_size=1&page=1&ordering=last_updated" | jq -r '.results[0].name // "latest"')
+            
+            # Fallback to 'latest' if API calls fail
+            if [ "$FRONTEND_SHA" = "null" ] || [ -z "$FRONTEND_SHA" ]; then
+              FRONTEND_SHA="latest"
+            fi
+            if [ "$BACKEND_SHA" = "null" ] || [ -z "$BACKEND_SHA" ]; then
+              BACKEND_SHA="latest"
+            fi
+            
+            echo "Using FRONTEND_SHA: $FRONTEND_SHA"
+            echo "Using BACKEND_SHA: $BACKEND_SHA"
+            
+            # Create .env file
+            cat <<EOF > .env
+            FRONTEND_TAG=${FRONTEND_SHA}
+            BACKEND_TAG=${BACKEND_SHA}
+            DB_PORT=${{ secrets.DB_PORT }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            EOF
+            
+            # Deploy with docker-compose
+            echo "Contents of .env file:"
+            cat .env
+            echo ""
+            echo "Contents of docker-compose.yml:"
+            cat docker-compose.yml
+            echo ""
+            
+            # Try to pull images with better error handling
+            if ! docker-compose pull; then
+              echo "Pull failed, trying with latest tags..."
+              # Modify docker-compose.yml to use latest tags if specific ones fail
+              sed -i "s/:.*/:latest/g" docker-compose.yml
+              docker-compose pull
+            fi
+            
+            docker-compose up -d --remove-orphans
+            
+            # Wait for containers to start
+            echo "Waiting for containers to start..."
+            sleep 15
+            
+            # Show final status
+            echo "=== DEPLOYMENT STATUS ==="
+            docker-compose ps
+            echo ""
+            
+            # Check what's listening on ports
+            echo "=== LISTENING PORTS ==="
+            sudo netstat -tlnp | grep -E ':3000|:5000|:80'
+            echo ""
+            
+            # Test local connectivity
+            echo "=== CONNECTIVITY TEST ==="
+            echo "Testing frontend (port 3000):"
+            curl -s -I http://localhost:3000 | head -5 || echo "Frontend not responding"
+            echo ""
+            echo "Testing backend (port 5000):"
+            curl -s -I http://localhost:5000 | head -5 || echo "Backend not responding"
+            echo ""
+            
+            echo "=== ACCESS URLs ==="
+            echo "Frontend: http://13.60.6.178:3000"
+            echo "Backend:  http://13.60.6.178:5000"
+            echo ""
+            echo "If these URLs don't work, check your AWS Security Group settings"
+            echo "Make sure ports 3000 and 5000 are allowed from 0.0.0.0/0"
