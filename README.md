@@ -134,8 +134,8 @@ resource "aws_route_table_association" "main" {
 📸 Screenshots included for VPC and Subnet in AWS console
 
 ![VPC and Subnet](screenshots/vpc11.png)
-![VPC and Subnet](screenshots/vcp22.png)
-![VPC and Subnet](screenshots/vcp33.png)
+![VPC and Subnet](screenshots/vpc22.png)
+![VPC and Subnet](screenshots/vpc33.png)
 ![VPC and Subnet](screenshots/subnet11.png)
 
 > Completing the network setup ensures that EC2 instances have internet access and are properly isolated.
@@ -417,6 +417,7 @@ This project gave me valuable hands-on experience in:
 - Configured CloudWatch for monitoring and alerts
 
 This project strengthened my understanding of end-to-end cloud deployment, infrastructure as code, automation and monitoring in a practical DevOps workflow.
+
 
 
 
