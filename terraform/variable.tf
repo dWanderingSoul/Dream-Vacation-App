@@ -1,7 +1,7 @@
 variable "aws_region" {
   description = "AWS region to deploy resources"
   type        = string
-  default = "us-east-1"
+  default = "eu-north-1"
 }
 
 variable "vpc_cidr" {
@@ -19,7 +19,7 @@ variable "subnet_cidr" {
 variable "instance_type" {
   description = "EC2 instance type"
   type        = string
-    default     = "t2.micro"
+    default     = "t3.micro"
 }
 
 variable "project_name" {
