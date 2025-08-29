@@ -133,11 +133,10 @@ resource "aws_route_table_association" "main" {
 ```
 📸 Screenshots included for VPC and Subnet in AWS console
 
-![VPC and Subnet](screenshots/vpc1.png)
-![VPC and Subnet](screenshots/vcp2.png)
-![VPC and Subnet](screenshots/subnet1.png)
-![VPC and Subnet](screenshots/subnet2.png)
-![VPC and Subnet](screenshots/subnet3.png)
+![VPC and Subnet](screenshots/vpc11.png)
+![VPC and Subnet](screenshots/vcp22.png)
+![VPC and Subnet](screenshots/vcp33.png)
+![VPC and Subnet](screenshots/subnet11.png)
 
 > Completing the network setup ensures that EC2 instances have internet access and are properly isolated.
 
@@ -249,10 +248,10 @@ EOF
 ``` 
 📸 Screenshot of running EC2 attached
 
-![EC2](screenshots/EC2instance1.png)
-![EC2](screenshots/EC2instance2.png)
-![EC2](screenshots/EC2instance3.png)
-![EC2](screenshots/EC2instance4.png)
+![EC2](screenshots/EC2instance11.png)
+![EC2](screenshots/EC2instance22.png)
+![EC2](screenshots/EC2instance33.png)
+![EC2](screenshots/EC2instance44.png)
 ![EC2](screenshots/EC2instance5.png)
 
 > Docker and Docker Compose allow me to run both frontend and backend containers efficiently.
@@ -307,8 +306,12 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 }
 ```
 
+📸 Screenshot of CloudWatch CPU metrics/alarms
 
-
+![CloudWatch](screenshots/CPUmetrics-alarms1.png)
+![CloudWatch](screenshots/CPUmetrics-alarms2.png)
+![CloudWatch](screenshots/CPUmetrics-alarms3.png)
+![CloudWatch](screenshots/CPUmetrics-alarms4.png)
 
 
 ### ⚡ Part 3 – CI/CD Deployment
@@ -326,23 +329,35 @@ With infrastructure ready, I automated deployment using my GitHub Actions pipeli
 - Run containers using Docker Compose
    
 ``` bash
-deploy:
-  runs-on: ubuntu-latest
-  steps:
-    - name: Checkout repo
-      uses: actions/checkout@v3
+ deploy:
+    needs: terraform
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+       # Install netcat
+      - name: Install netcat
+        run: sudo apt-get update && sudo apt-get install -y netcat-openbsd
 
-    - name: Deploy to EC2
-      uses: appleboy/ssh-action@v0.1.6
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ubuntu
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          cd ~/dream-vacation-app
-          git pull origin main
-          docker-compose pull
-          docker-compose up -d --build
+    # Wait until SSH is available
+      - name: Wait for EC2 SSH
+        env:
+          EC2_IP: ${{ needs.terraform.outputs.ec2_ip }}
+        run: |
+          echo "⏳ Waiting for SSH on $EC2_IP:22..."
+          for i in {1..30}; do
+          if nc -zv $EC2_IP 22; then
+            echo "✅ SSH is ready!"
+            exit 0
+          fi
+          echo "Retrying in 10s... ($i/30)"
+          sleep 10
+          done
+          echo "❌ Timeout: SSH not available after 5 minutes"
+          exit 1
+
+     
 ```
 Alternatively, I could also manually run the deployment with:
 
@@ -354,7 +369,7 @@ docker-compose up -d
 EOF
 ```
 
-📸 Screenshots of CI/CD pipeline logs, Docker images on registry and SSH into EC2 instance via PowerShell attached.
+📸 Screenshots of CI/CD pipeline logs, showing successful Terraform deployment + app deployment.
 
 ![CI/CD pipeline logs](screenshots/CICDdeployment1.png)
 ![CI/CD pipeline logs](screenshots/CICDdeployment2.png)
@@ -372,8 +387,8 @@ After the pipeline ran successfully, I verified that both the frontend and backe
  - Frontend: http://<EC2_PUBLIC_IP>:3000
  - Backend API: http://<EC2_PUBLIC_IP>:5000
 For my deployment:
- - Frontend → http://51.21.135.248:3000
- - Backend → http://51.21.135.248:5000
+ - Frontend → http://13.60.6.178:3000
+ - Backend → http://13.60.6.178:5000
 
 #### 📝 Things I Checked
  - ✅ Docker containers are running properly using:
@@ -402,6 +417,7 @@ This project gave me valuable hands-on experience in:
 - Configured CloudWatch for monitoring and alerts
 
 This project strengthened my understanding of end-to-end cloud deployment, infrastructure as code, automation and monitoring in a practical DevOps workflow.
+
 
 
 
