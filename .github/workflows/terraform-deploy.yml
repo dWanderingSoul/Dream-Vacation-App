@@ -101,8 +101,8 @@ jobs:
             cd /home/ubuntu/dream-vacation
             
             # Get latest Docker image tags
-            FRONTEND_SHA=$(curl -s "https://hub.docker.com/v2/repositories/aiyus/dream-frontend/tags?page_size=1&page=1&ordering=last_updated" | jq -r '.results[0].name')
-            BACKEND_SHA=$(curl -s "https://hub.docker.com/v2/repositories/aiyus/dream-backend/tags?page_size=1&page=1&ordering=last_updated" | jq -r '.results[0].name')
+            FRONTEND_SHA=$(curl -s "https://hub.docker.com/v2/repositories/dwanderingsoul/dream-frontend/tags?page_size=1&page=1&ordering=last_updated" | jq -r '.results[0].name')
+            BACKEND_SHA=$(curl -s "https://hub.docker.com/v2/repositories/dwanderingsoul/dream-backend/tags?page_size=1&page=1&ordering=last_updated" | jq -r '.results[0].name')
             
             # Create .env file
             cat <<EOF > .env
