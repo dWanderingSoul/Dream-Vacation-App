@@ -252,7 +252,7 @@ EOF
 ![EC2](screenshots/EC2instance22.png)
 ![EC2](screenshots/EC2instance33.png)
 ![EC2](screenshots/EC2instance44.png)
-![EC2](screenshots/EC2instance5.png)
+
 
 > Docker and Docker Compose allow me to run both frontend and backend containers efficiently.
   
@@ -371,8 +371,8 @@ EOF
 
 📸 Screenshots of CI/CD pipeline logs, showing successful Terraform deployment + app deployment.
 
-![CI/CD pipeline logs](screenshots/CICDdeployment1.png)
-![CI/CD pipeline logs](screenshots/CICDdeployment2.png)
+![CI/CD pipeline logs](screenshots/CICDdeployment11.png)
+![CI/CD pipeline logs](screenshots/CICDdeployment22.png)
 ![CI/CD pipeline logs](screenshots/Dockerimagesonregistry.png)
 ![CI/CD pipeline logs](screenshots/sshintoec2instanceviapowershell.png)
 
@@ -417,6 +417,7 @@ This project gave me valuable hands-on experience in:
 - Configured CloudWatch for monitoring and alerts
 
 This project strengthened my understanding of end-to-end cloud deployment, infrastructure as code, automation and monitoring in a practical DevOps workflow.
+
 
 
 
