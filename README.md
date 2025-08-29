@@ -384,11 +384,11 @@ EOF
 After the pipeline ran successfully, I verified that both the frontend and backend of the Dream Vacation App were properly deployed and running on the EC2 instance.
 
 #### 🌐 Application Endpoints
- - Frontend: http://<EC2_PUBLIC_IP>:3000
+ - Frontend: http://<EC2_PUBLIC_IP>:80
  - Backend API: http://<EC2_PUBLIC_IP>:5000
 For my deployment:
- - Frontend → http://13.60.6.178:3000
- - Backend → http://13.60.6.178:5000
+ - Frontend → http://13.60.6.178:80 or http://13.60.6.178
+ - Backend → http://13.60.6.178:3001
 
 #### 📝 Things I Checked
  - ✅ Docker containers are running properly using:
@@ -401,7 +401,7 @@ docker ps
 
 📸 Screenshot of the running app in the browser attached.
 
-![appinbrowser](screenshots/Appinbrowser.png)
+![appinbrowser](screenshots/appinbrowzer.png)
 
 
 ### 🚀 Conclusion
@@ -417,6 +417,7 @@ This project gave me valuable hands-on experience in:
 - Configured CloudWatch for monitoring and alerts
 
 This project strengthened my understanding of end-to-end cloud deployment, infrastructure as code, automation and monitoring in a practical DevOps workflow.
+
 
 
 
